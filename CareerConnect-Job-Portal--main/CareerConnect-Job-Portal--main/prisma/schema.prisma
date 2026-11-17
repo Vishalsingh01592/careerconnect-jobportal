@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         UserRole      @default(CANDIDATE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+  company      Company?
+  jobs         Job[]         @relation("JobRecruiter")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  website     String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recruiterId String   @unique
+  recruiter   User     @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  jobs        Job[]
+}
+
+model Job {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  location     String
+  type         JobType       @default(FULL_TIME)
+  salary       String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  recruiterId  String
+  companyId    String
+  applications Application[]
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  recruiter    User          @relation("JobRecruiter", fields: [recruiterId], references: [id], onDelete: Cascade)
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  coverLetter String?
+  resumeUrl   String?
+  status      ApplicationStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  candidateId String
+  jobId       String
+  candidate   User              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+}
+
+enum UserRole {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
+  ACCEPTED
+}
